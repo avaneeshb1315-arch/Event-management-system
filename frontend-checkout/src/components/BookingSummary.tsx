@@ -18,6 +18,6 @@ export default function BookingSummary({ seats, onRemove, onClear }: Props) {
       </li>)}</ul>}
     <div className={styles.total} aria-live="polite"><span>Estimated total</span><strong>{formatPrice(total)}</strong></div>
     <button type="button" className={styles.clear} disabled={seats.length === 0} onClick={onClear}>Clear selection</button>
-    <p className={styles.note}>Preview only. Prices are sample values. No seats are held and no payment or booking is created.</p>
+    <p className={styles.note}>Seats are not reserved until a hold is confirmed. Your selection does not create a booking.</p>
   </aside>;
 }
