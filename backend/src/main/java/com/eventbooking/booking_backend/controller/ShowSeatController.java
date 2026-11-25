@@ -11,11 +11,9 @@ import java.util.UUID;
 public class ShowSeatController {
 
     private final ShowSeatService service;
-
     public ShowSeatController(ShowSeatService service) {
         this.service = service;
     }
-
     @GetMapping("/{showId}/seats")
     public List<SeatResponse> getSeats(
             @PathVariable UUID showId,
