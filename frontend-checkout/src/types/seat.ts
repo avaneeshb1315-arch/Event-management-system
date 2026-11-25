@@ -16,4 +16,4 @@ export const CATEGORY_NAMES: Record<SeatCategory, string> = {
 };
 export const MAX_SEATS = 6;
 export const formatPrice = (value: number) =>
-  new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(value);
+  new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(value);
