@@ -1,0 +1,398 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seat Booking System</title>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f1f5f9;
+    color: #1e293b;
+}
+
+header {
+    background: #172554;
+    color: white;
+    padding: 25px;
+}
+
+.container {
+    max-width: 850px;
+    margin: 30px auto;
+    background: white;
+    padding: 25px;
+    border-radius: 15px;
+}
+
+.stage {
+    background: #dbeafe;
+    padding: 20px;
+    text-align: center;
+    letter-spacing: 5px;
+    border-radius: 10px;
+}
+
+#seats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin: 30px auto;
+    max-width: 450px;
+}
+
+.seat {
+    padding: 22px 5px;
+    border: none;
+    border-radius: 10px;
+    background: #dcfce7;
+    color: #166534;
+    cursor: pointer;
+    white-space: pre-line;
+    font-weight: bold;
+}
+
+.selected {
+    background: #2563eb;
+    color: white;
+}
+
+.locked {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.booked {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+button:disabled {
+    cursor: not-allowed;
+}
+
+.timer {
+    background: #fef3c7;
+    color: #92400e;
+    padding: 20px;
+    text-align: center;
+    border-radius: 10px;
+    margin: 20px 0;
+}
+
+#countdown {
+    font-size: 38px;
+    font-weight: bold;
+}
+
+.summary {
+    background: #f8fafc;
+    padding: 20px;
+    border-radius: 10px;
+}
+
+.action {
+    background: #2563eb;
+    color: white;
+    padding: 14px 25px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.action:disabled {
+    opacity: 0.5;
+}
+</style>
+<link rel="stylesheet" href="/booking/style.css"></head>
+
+<body>
+
+<header>
+    <h2>EVENT MANAGEMENT SYSTEM</h2>
+    Seat Booking Module
+</header>
+
+<div class="container">
+
+    <h1>Choose Your Seats</h1>
+<a href="/booking/my-bookings.html"
+   style="display:inline-block;
+   background:#2563eb;
+   color:white;
+   padding:12px 20px;
+   border-radius:8px;
+   text-decoration:none;
+   margin-bottom:20px;">
+   My Bookings
+</a>
+    <p>Music Concert - Main Auditorium (Demo)</p>
+
+    <div class="timer">
+        <p>Reservation Countdown</p>
+        <div id="countdown">05:00</div>
+    </div>
+
+    <div class="stage">STAGE</div>
+
+    <div id="seats"></div>
+
+    <p>Green: Available | Blue: Selected |
+       Yellow: Locked | Red: Booked</p>
+
+    <div class="summary">
+        <h2>Reservation Summary</h2>
+
+        <p>Seat: <span id="selected">None</span></p>
+
+        <h2>Total: Rs. <span id="total">0</span></h2>
+
+        <button class="action" id="holdButton"
+                onclick="holdSeat()" disabled>
+            Hold Seat
+        </button>
+
+        <button class="action" id="confirmButton"
+        onclick="confirmBooking()"
+        style="background:#15803d" disabled>
+    Confirm Booking
+</button>
+<p id="message" aria-live="polite"></p>
+        <p id="error"></p>
+    </div>
+
+</div>
+
+<script>
+
+let selectedSeat = null;
+let expiresAt = null;
+let activeLockId = null;
+let busy = false;
+
+async function loadSeats() {
+    try {
+        const response = await fetch("/api/seats", {
+            cache: "no-store"
+        });
+
+        if (!response.ok) {
+            throw new Error("Could not load seats");
+        }
+
+        const seats = await response.json();
+        const area = document.getElementById("seats");
+
+        if (selectedSeat && !expiresAt && !busy) {
+            const current = seats.find(
+                s => s.id === selectedSeat.id
+            );
+
+            if (!current || current.status !== "AVAILABLE") {
+                selectedSeat = null;
+            }
+        }
+
+        area.innerHTML = "";
+
+        seats.forEach(seat => {
+            const button = document.createElement("button");
+
+            button.className = "seat";
+            button.textContent =
+                seat.seat_number + "\n" +
+                seat.category + "\nRs. " +
+                seat.price;
+
+            if (seat.status !== "AVAILABLE") {
+                button.classList.add(
+                    seat.status.toLowerCase()
+                );
+            } else if (selectedSeat?.id === seat.id) {
+                button.classList.add("selected");
+            }
+
+            button.disabled =
+                seat.status !== "AVAILABLE" ||
+                busy || !!expiresAt;
+
+            button.onclick = () => {
+                selectedSeat = seat;
+                updateSummary();
+                loadSeats();
+            };
+
+            area.appendChild(button);
+        });
+
+        updateSummary();
+        document.getElementById("error").textContent = "";
+
+    } catch (error) {
+        document.getElementById("error").textContent =
+            error.message;
+    }
+}
+
+function updateSummary() {
+    document.getElementById("confirmButton").disabled =
+        !selectedSeat || !expiresAt ||
+        !activeLockId || busy ||
+        Date.now() >= expiresAt;
+    document.getElementById("selected").textContent =
+        selectedSeat?.seat_number || "None";
+
+    document.getElementById("total").textContent =
+        Number(selectedSeat?.price || 0).toFixed(2);
+
+    document.getElementById("holdButton").disabled =
+        !selectedSeat || busy || !!expiresAt;
+}
+
+async function holdSeat() {
+    if (!selectedSeat || busy || expiresAt) return;
+
+    busy = true;
+    updateSummary();
+
+    try {
+        const response = await fetch("/api/seats/lock", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                seat_id: selectedSeat.id,
+                user_id: 1
+            })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.message);
+        }
+
+        activeLockId = result.lock.id;
+        expiresAt = new Date(
+            result.lock.expires_at
+        ).getTime();
+
+        document.getElementById("message").textContent =
+            "Seat held successfully!";
+
+        updateCountdown();
+
+    } catch (error) {
+        document.getElementById("message").textContent =
+            error.message;
+    } finally {
+        busy = false;
+        updateSummary();
+        loadSeats();
+    }
+}
+
+async function confirmBooking() {
+    if (!selectedSeat || !activeLockId ||
+        !expiresAt || busy || Date.now() >= expiresAt) return;
+
+    busy = true;
+    updateSummary();
+
+    try {
+        const response = await fetch("/api/bookings/confirm", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                seat_id: selectedSeat.id,
+                user_id: 1,
+                lock_id: activeLockId
+            })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.message);
+        }
+
+        document.getElementById("message").textContent =
+            "Booking confirmed successfully! Booking ID: " +
+            result.booking.id;
+
+        expiresAt = null;
+        selectedSeat = null;
+        activeLockId = null;
+
+        document.getElementById("countdown").textContent =
+            "00:00";
+
+    } catch (error) {
+        document.getElementById("message").textContent =
+            error.message;
+    } finally {
+        busy = false;
+        updateSummary();
+        loadSeats();
+    }
+}
+
+function updateCountdown() {
+    if (!expiresAt) return;
+
+    const remaining = Math.max(
+        0, Math.ceil((expiresAt - Date.now()) / 1000)
+    );
+
+    const minutes = Math.floor(remaining / 60);
+    const seconds = remaining % 60;
+
+    document.getElementById("countdown").textContent =
+        String(minutes).padStart(2, "0") + ":" +
+        String(seconds).padStart(2, "0");
+
+    if (remaining === 0) {
+        expiresAt = null;
+        selectedSeat = null;
+
+        document.getElementById("message").textContent =
+            "Reservation expired. Refreshing availability.";
+
+        updateSummary();
+        loadSeats();
+    }
+}
+
+setInterval(updateCountdown, 1000);
+setInterval(loadSeats, 5000);
+
+loadSeats();
+
+</script>
+<script src="/socket.io/socket.io.js"></script>
+
+<script>
+const socket = io();
+
+socket.on("connect", () => {
+    console.log("Real-time connection established");
+    loadSeats();
+});
+
+socket.on("seats:updated", () => {
+    loadSeats();
+});
+</script>
+</body>
+</html>
+
+
+
+
