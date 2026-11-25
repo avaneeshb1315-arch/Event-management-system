@@ -58,7 +58,76 @@ a, button {
 }
 #error { color: #dc2626; }
 </style>
-<link rel="stylesheet" href="/booking/style.css"></head>
+<link rel="stylesheet" href="/booking/style.css"><style id="responsive-styles">
+
+* {
+    box-sizing: border-box;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+#seats {
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+@media (max-width: 768px) {
+
+    body {
+        margin: 0;
+        padding: 15px;
+    }
+
+    .container {
+        width: 100%;
+        max-width: 100%;
+        padding: 12px;
+    }
+
+    h1 {
+        font-size: 24px;
+    }
+
+    h2 {
+        font-size: 20px;
+    }
+
+    button {
+        min-height: 44px;
+        max-width: 100%;
+    }
+
+    .action {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+
+    input, select {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+
+    body {
+        padding: 10px;
+    }
+
+    h1 {
+        font-size: 20px;
+    }
+
+    #seats {
+        padding: 5px;
+    }
+
+}
+
+</style>
+</head>
 
 <body>
 
@@ -165,4 +234,5 @@ loadBookings();
 </script>
 </body>
 </html>
+
 
