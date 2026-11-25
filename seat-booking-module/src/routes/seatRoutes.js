@@ -1,12 +1,12 @@
-﻿const express = require("express");
+﻿const requireAuth = require('../middleware/auth');
+const express = require("express");
 const router = express.Router();
 const db = require("../../db");
 
-router.post("/lock", async (req, res) => {
-    const { seat_id, user_id } = req.body;
+router.post("/lock", requireAuth, async (req, res) => {
+    const { seat_id } = req.body || {}; const user_id = req.auth.id;
 
-    if (!Number.isInteger(seat_id) || seat_id <= 0 ||
-        !Number.isInteger(user_id) || user_id <= 0) {
+    if (!Number.isInteger(seat_id) || seat_id <= 0) {
         return res.status(400).json({
             message: "Invalid seat or user ID"
         });
@@ -44,7 +44,7 @@ router.post("/lock", async (req, res) => {
 
         const lock = await client.query(
             `INSERT INTO seat_locks
-            (seat_id, user_id, expires_at)
+            (seat_id, auth_user_id, expires_at)
             VALUES ($1, $2, NOW() + INTERVAL '5 minutes')
             ON CONFLICT (seat_id) DO NOTHING
             RETURNING *`,
@@ -87,3 +87,4 @@ router.post("/lock", async (req, res) => {
 });
 
 module.exports = router;
+

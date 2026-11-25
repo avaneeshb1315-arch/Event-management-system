@@ -11,6 +11,7 @@ const io = new Server(server);
 
 app.use(cors());
 app.use(express.json());
+app.use("/api/auth", require("./src/routes/authRoutes"));
 app.use("/api/bookings", require("./src/routes/bookingRoutes"));
 
 app.use("/booking", express.static(
@@ -91,4 +92,5 @@ server.listen(PORT, () => {
 
     setInterval(broadcastSeatUpdates, 2000);
 });
+
 

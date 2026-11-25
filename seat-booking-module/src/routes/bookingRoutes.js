@@ -1,11 +1,12 @@
-﻿const express = require("express");
+﻿const requireAuth = require('../middleware/auth');
+const express = require("express");
 const router = express.Router();
 const db = require("../../db");
 
-router.post("/confirm", async (req, res) => {
-    const { seat_id, user_id, lock_id } = req.body || {};
+router.post("/confirm", requireAuth, async (req, res) => {
+    const { seat_id, lock_id } = req.body || {}; const user_id = req.auth.id;
 
-    if (![seat_id, user_id, lock_id].every(
+    if (![seat_id, lock_id].every(
         n => Number.isSafeInteger(n) && n > 0
     )) {
         return res.status(400).json({
@@ -35,7 +36,7 @@ router.post("/confirm", async (req, res) => {
         const lock = await client.query(
             `SELECT * FROM seat_locks
              WHERE seat_id = $1
-             AND user_id = $2
+             AND auth_user_id = $2
              AND id = $3
              AND expires_at > clock_timestamp()`,
             [seat_id, user_id, lock_id]
@@ -50,7 +51,7 @@ router.post("/confirm", async (req, res) => {
 
         const booking = await client.query(
             `INSERT INTO bookings
-             (user_id, event_id, total_amount, status)
+             (auth_user_id, event_id, total_amount, status)
              VALUES ($1, $2, $3, 'CONFIRMED')
              RETURNING *`,
             [
@@ -101,14 +102,7 @@ router.post("/confirm", async (req, res) => {
     }
 });
 
-router.get("/user/:userId", async (req, res) => {
-    const userId = Number(req.params.userId);
-
-    if (!Number.isSafeInteger(userId) || userId <= 0) {
-        return res.status(400).json({
-            message: "Invalid user ID"
-        });
-    }
+router.get("/me", requireAuth, async (req, res) => { const userId = req.auth.id;
 
     try {
         const result = await db.query(`
@@ -126,7 +120,7 @@ router.get("/user/:userId", async (req, res) => {
             JOIN events e ON e.id = b.event_id
             JOIN booking_seats bs ON bs.booking_id = b.id
             JOIN seats s ON s.id = bs.seat_id
-            WHERE b.user_id = $1
+            WHERE b.auth_user_id = $1
             ORDER BY b.created_at DESC
         `, [userId]);
 
@@ -141,4 +135,6 @@ router.get("/user/:userId", async (req, res) => {
 });
 
 module.exports = router;
+
+
 

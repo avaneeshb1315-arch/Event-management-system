@@ -1,0 +1,124 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seat Booking - Login</title>
+
+<style>
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg,#172554,#4f46e5);
+    font-family: "Segoe UI",Arial,sans-serif;
+}
+.card {
+    width: min(420px,92%);
+    background: white;
+    border-radius: 20px;
+    padding: 32px;
+    box-shadow: 0 20px 60px #0003;
+}
+h1 { color: #172554; }
+label { display: block; margin-top: 15px; }
+input,button {
+    width: 100%;
+    padding: 13px;
+    margin-top: 8px;
+    border-radius: 9px;
+}
+input { border: 1px solid #cbd5e1; }
+button {
+    border: 0;
+    background: #4f46e5;
+    color: white;
+    cursor: pointer;
+    font-weight: bold;
+}
+.secondary { background: #172554; }
+button:disabled { opacity: .6; }
+#message { color: #b91c1c; }
+</style>
+</head>
+
+<body>
+<div class="card">
+    <h1>Welcome Back</h1>
+    <p>Sign in to reserve your seats.</p>
+
+    <form id="authForm">
+
+        <label for="name">Name (new accounts only)</label>
+        <input id="name" autocomplete="name">
+
+        <label for="email">Email Address</label>
+        <input id="email" type="email"
+               autocomplete="email" required>
+
+        <label for="password">Password</label>
+        <input id="password" type="password"
+               autocomplete="current-password" required>
+
+        <button type="submit" value="login">Sign In</button>
+
+        <button type="submit" value="register"
+                class="secondary">Create Account</button>
+
+    </form>
+
+    <p id="message" role="status"></p>
+</div>
+
+<script>
+const form = document.getElementById("authForm");
+
+form.addEventListener("submit", async event => {
+    event.preventDefault();
+
+    const action = event.submitter?.value || "login";
+    const message = document.getElementById("message");
+    const buttons = form.querySelectorAll("button");
+
+    const body = {
+        name: document.getElementById("name").value.trim(),
+        email: document.getElementById("email").value.trim(),
+        password: document.getElementById("password").value
+    };
+
+    if (action === "register" && !body.name) {
+        message.textContent = "Enter your name";
+        return;
+    }
+
+    buttons.forEach(b => b.disabled = true);
+
+    try {
+        const response = await fetch("/api/auth/" + action, {
+            method: "POST",
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify(body)
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.token) {
+            throw new Error(result.message || "Authentication failed");
+        }
+
+        sessionStorage.removeItem("seat_booking_reservation");
+        sessionStorage.setItem("booking_token", result.token);
+
+        location.replace("/booking/");
+
+    } catch (error) {
+        message.textContent = error.message;
+    } finally {
+        buttons.forEach(b => b.disabled = false);
+    }
+});
+</script>
+</body>
+</html>

@@ -177,6 +177,7 @@ img {
 }
 
 </style>
+<script src="/booking/auth.js"></script>
 </head>
 
 <body>
@@ -184,6 +185,12 @@ img {
 <header>
     <h2>EVENT MANAGEMENT SYSTEM</h2>
     Seat Booking Module
+<button onclick="bookingLogout()"
+style="background:#dc2626;color:white;
+padding:10px 20px;border:0;
+border-radius:8px;cursor:pointer;">
+Logout
+</button>
 </header>
 
 <div class="container">
@@ -399,14 +406,13 @@ async function holdSeat() {
     updateSummary();
 
     try {
-        const response = await fetch("/api/seats/lock", {
+        const response = await authFetch("/api/seats/lock", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                seat_id: selectedSeat.id,
-                user_id: 1
+                seat_id: selectedSeat.id
             })
         });
 
@@ -444,14 +450,13 @@ async function confirmBooking() {
     updateSummary();
 
     try {
-        const response = await fetch("/api/bookings/confirm", {
+        const response = await authFetch("/api/bookings/confirm", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
                 seat_id: selectedSeat.id,
-                user_id: 1,
                 lock_id: activeLockId
             })
         });
@@ -531,6 +536,7 @@ socket.on("seats:updated", () => {
 </script>
 </body>
 </html>
+
 
 
 
