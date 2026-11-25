@@ -255,6 +255,58 @@ let expiresAt = null;
 let activeLockId = null;
 let busy = false;
 
+const reservationKey = "seat_booking_reservation";
+
+function saveReservation() {
+    try {
+        sessionStorage.setItem(reservationKey, JSON.stringify({
+            selectedSeat,
+            activeLockId,
+            expiresAt
+        }));
+    } catch (error) {
+        console.warn("Reservation storage unavailable");
+    }
+}
+
+function clearReservation() {
+    try {
+        sessionStorage.removeItem(reservationKey);
+    } catch (error) {
+        console.warn("Reservation storage unavailable");
+    }
+}
+
+function restoreReservation() {
+    try {
+        const saved = JSON.parse(
+            sessionStorage.getItem(reservationKey)
+        );
+
+        if (!saved || !saved.selectedSeat ||
+            !saved.activeLockId ||
+            !Number.isFinite(saved.expiresAt) ||
+            saved.expiresAt <= Date.now()) {
+
+            clearReservation();
+            return;
+        }
+
+        selectedSeat = saved.selectedSeat;
+        activeLockId = saved.activeLockId;
+        expiresAt = saved.expiresAt;
+
+        document.getElementById("message").textContent =
+            "Reservation restored successfully";
+
+        updateCountdown();
+        updateSummary();
+
+    } catch (error) {
+        clearReservation();
+    }
+}
+
 async function loadSeats() {
     try {
         const response = await fetch("/api/seats", {
@@ -372,7 +424,7 @@ async function holdSeat() {
         document.getElementById("message").textContent =
             "Seat held successfully!";
 
-        updateCountdown();
+        saveReservation(); updateCountdown();
 
     } catch (error) {
         document.getElementById("message").textContent =
@@ -412,7 +464,7 @@ async function confirmBooking() {
 
         document.getElementById("message").textContent =
             "Booking confirmed successfully! Booking ID: " +
-            result.booking.id;
+            result.booking.id; clearReservation();
 
         expiresAt = null;
         selectedSeat = null;
@@ -445,7 +497,7 @@ function updateCountdown() {
         String(minutes).padStart(2, "0") + ":" +
         String(seconds).padStart(2, "0");
 
-    if (remaining === 0) {
+    if (remaining === 0) { clearReservation(); activeLockId = null;
         expiresAt = null;
         selectedSeat = null;
 
@@ -457,7 +509,7 @@ function updateCountdown() {
     }
 }
 
-setInterval(updateCountdown, 1000);
+restoreReservation(); setInterval(updateCountdown, 1000);
 setInterval(loadSeats, 5000);
 
 loadSeats();
@@ -479,6 +531,7 @@ socket.on("seats:updated", () => {
 </script>
 </body>
 </html>
+
 
 
 
