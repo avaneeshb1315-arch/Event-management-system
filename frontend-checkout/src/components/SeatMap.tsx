@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { fetchShowSeats } from "../lib/seatApi";
@@ -6,16 +6,17 @@ import { CATEGORY_NAMES, formatPrice, MAX_SEATS, type Seat, type SeatCategory } 
 import SeatButton from "./SeatButton";
 import SeatLegend from "./SeatLegend";
 import BookingSummary from "./BookingSummary";
+import SeatHoldPanel from "./SeatHoldPanel";
 import styles from "./SeatMap.module.css";
 
 const rows = Array.from("ABCDEFGHIJ");
 const categories = ["VIP", "PT", "G", "MAIN"] as const;
 
 function tierPrice(group: Seat[]) {
-  if (!group.length) return "—";
+  if (!group.length) return "â€”";
   const prices = group.map(seat => seat.price);
   const min = Math.min(...prices), max = Math.max(...prices);
-  return min === max ? formatPrice(min) : `${formatPrice(min)} – ${formatPrice(max)}`;
+  return min === max ? formatPrice(min) : `${formatPrice(min)} â€“ ${formatPrice(max)}`;
 }
 
 export default function SeatMap({ showId }: { showId: string | null }) {
@@ -97,11 +98,11 @@ export default function SeatMap({ showId }: { showId: string | null }) {
         <div className={styles.headerActions}><span className={styles.brandContext}>Attendee experience</span><button type="button" className={styles.motionButton} aria-pressed={!motion} onClick={() => setMotion(v => !v)}>{motion ? "Pause motion" : "Resume motion"}</button></div>
       </div>
       <header className={styles.header}>
-        <div className={styles.heroCopy}><div className={styles.heroPill}><span/> YOUR NEXT EXPERIENCE</div><h1>Great moments.<br/><em>Better seats.</em></h1><p>Choose your spot, explore the venue and make the experience yours.</p><div className={styles.heroActions}><a href="#venue-layout" className={styles.heroCta}>Explore seats <span aria-hidden="true">↓</span></a></div></div>
-        <div className={styles.heroArt} aria-hidden="true"><div className={styles.ring}/><div className={styles.ringInner}/><div className={styles.ticket}><div className={styles.ticketTop}><span>COMMUNITY 360</span><span>EVENT PASS</span></div><div className={styles.ticketTitle}>Your next<br/>experience.</div><div className={styles.ticketBottom}><span>DISCOVER · CONNECT</span><i className={styles.barcode}/></div></div><div className={styles.floatingStat}><span className={styles.statIcon}>✦</span><div><strong>{ready ? `${available} seats` : "—"}</strong><small>Available seats</small></div></div><div className={styles.floatingCapacity}><span>VENUE CAPACITY</span><strong>{ready ? seats.length : "—"}</strong></div></div>
+        <div className={styles.heroCopy}><div className={styles.heroPill}><span/> YOUR NEXT EXPERIENCE</div><h1>Great moments.<br/><em>Better seats.</em></h1><p>Choose your spot, explore the venue and make the experience yours.</p><div className={styles.heroActions}><a href="#venue-layout" className={styles.heroCta}>Explore seats <span aria-hidden="true">â†“</span></a></div></div>
+        <div className={styles.heroArt} aria-hidden="true"><div className={styles.ring}/><div className={styles.ringInner}/><div className={styles.ticket}><div className={styles.ticketTop}><span>COMMUNITY 360</span><span>EVENT PASS</span></div><div className={styles.ticketTitle}>Your next<br/>experience.</div><div className={styles.ticketBottom}><span>DISCOVER Â· CONNECT</span><i className={styles.barcode}/></div></div><div className={styles.floatingStat}><span className={styles.statIcon}>âœ¦</span><div><strong>{ready ? `${available} seats` : "â€”"}</strong><small>Available seats</small></div></div><div className={styles.floatingCapacity}><span>VENUE CAPACITY</span><strong>{ready ? seats.length : "â€”"}</strong></div></div>
       </header>
       {!ready ? <section id="venue-layout" className={styles.mapPanel} aria-live="polite">
-        <h2>{!showId ? "Choose an event first" : error ? "Seat availability unavailable" : "Loading seats…"}</h2>
+        <h2>{!showId ? "Choose an event first" : error ? "Seat availability unavailable" : "Loading seatsâ€¦"}</h2>
         <p className={styles.note}>{!showId ? "Open the seating page for a scheduled show." : error || "Retrieving the venue layout and current prices."}</p>
         {showId && error && <button type="button" className={styles.motionButton} onClick={() => setReload(v => v + 1)}>Try again</button>}
       </section> : <>
@@ -114,17 +115,17 @@ export default function SeatMap({ showId }: { showId: string | null }) {
       </div>
       <div className={styles.content}>
         <section id="venue-layout" className={styles.mapPanel} aria-label="Venue seat map">
-          <div className={styles.mapHeader}><div><h2>Venue layout</h2><p>{seats.length} seats · 4 categories</p></div><span>{available} available</span></div>
+          <div className={styles.mapHeader}><div><h2>Venue layout</h2><p>{seats.length} seats Â· 4 categories</p></div><span>{available} available</span></div>
           <SeatLegend />
           <p className={styles.scrollHint}>Scroll horizontally on smaller screens to see the full layout.</p>
           <div className={styles.mapScroll} tabIndex={0} role="region" aria-label="Scrollable seating plan">
             <div className={styles.mapCanvas}>
               <div className={styles.stage}>STAGE</div>
               {tiers.slice(0, 3).map(({category, seats: group}) => <div className={styles.tier} key={category}>
-                <div className={styles.tierLabel}>{CATEGORY_NAMES[category]} · {tierPrice(group)}</div>
+                <div className={styles.tierLabel}>{CATEGORY_NAMES[category]} Â· {tierPrice(group)}</div>
                 <div className={styles.tierRow}>{group.map(renderSeat)}</div>
               </div>)}
-              <div className={styles.hallTitle}>MAIN HALL · {tierPrice(hall)}</div>
+              <div className={styles.hallTitle}>MAIN HALL Â· {tierPrice(hall)}</div>
               <div className={styles.hall}>
                 {hallSide(1, 10)}
                 <div className={styles.aisle}><span>CENTRE AISLE</span></div>
@@ -134,10 +135,21 @@ export default function SeatMap({ showId }: { showId: string | null }) {
           </div>
           <p className={styles.notice} role="status">{notice || (selectedIds.length === MAX_SEATS ? "Maximum 6 seats selected." : `Select up to ${MAX_SEATS} seats per booking.`)}</p>
         </section>
-        <BookingSummary seats={selected} onRemove={toggle} onClear={() => { setSelectedIds([]); setNotice(""); }} />
+        <div>
+  <BookingSummary seats={selected} onRemove={toggle} onClear={() => { setSelectedIds([]); setNotice(""); }} />
+  {showId && <SeatHoldPanel
+    showId={showId}
+    seatIds={selectedIds}
+    onHeld={() => {
+      setSelectedIds([]);
+      setReload(v => v + 1);
+    }}
+  />}
+</div>
       </div>
       </>}
-      <footer className={styles.footer}>Community 360 · Events that bring people together.</footer>
+      <footer className={styles.footer}>Community 360 Â· Events that bring people together.</footer>
     </div>
   </main>;
 }
+
